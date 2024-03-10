@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-
+#include<stdlib.h>
 #include "lexer.h"
 #include "utils.h"
 
@@ -273,6 +273,29 @@ Token *tokenize(const char *pch)
 					tk->text = text;
 				}
 			}
+			 else if(isdigit(*pch))
+                {
+                    for(start=pch++; isdigit(*pch) || *pch=='.' ||
+                                     ((*pch=='e' || *pch=='E') && (*(pch+1)=='-' || (*(pch+1)=='+' || isdigit(*(pch+1)) ||
+                                             isdigit(*(pch-1))) )) ||
+                                     ((*(pch-1)=='e' || *(pch-1)=='E') && (*pch=='-' || (*pch=='+' || isdigit(*pch) ) )); pch++) {}
+                    char *text = extract(start, pch);
+                    char *text_to_double = NULL;
+                    // convert text to double
+                    double value = strtod(text, &text_to_double);
+
+                    if(strchr(text, '.') || strchr(text, 'e') || strchr(text, 'E') || strchr(text, '-') || strchr(text, '+'))
+                    {
+                        tk=addTk(DOUBLE);
+                        tk->d=value;
+                    }
+                    // INT: [0-9]+
+                    else
+                    {
+                        tk= addTk(INT);
+                        tk->i=(int)value; //casting double to int value
+                    }
+				}
 			else
 				err("invalid char: %c (%d)", *pch, *pch);
 		}
@@ -281,8 +304,185 @@ Token *tokenize(const char *pch)
 
 void showTokens(const Token *tokens)
 {
-	for (const Token *tk = tokens; tk; tk = tk->next)
-	{
-		printf("%d\n", tk->code);
-	}
+    FILE* fout = fopen("lista-de-atomi-copy.txt", "w"); //opening file for write
+
+    const Token *tk;
+    char code[12];
+
+    char *text;
+    int *type_int_value;
+    double *type_double_value;
+    char c = '\0';
+
+    for(tk=tokens; tk; tk=tk->next)
+    {
+        size_t length = 0;
+
+        text = NULL;
+        type_int_value = NULL;
+        type_double_value = NULL;
+        c = '\0';
+
+        switch(tk->code)
+        {
+            case ID:
+                strcpy(code, "ID");
+                length = strlen(tk->text);
+                text = (char*)safeAlloc((size_t)length+1);
+                strcpy(text, tk->text);
+                break;
+            case 1:
+                strcpy(code, "TYPE_INT");
+                break;
+            case 2:
+                strcpy(code, "TYPE_CHAR");
+                break;
+            case 3:
+                strcpy(code, "TYPE_DOUBLE");
+                break;
+            case 4:
+                strcpy(code, "ELSE");
+                break;
+            case 5:
+                strcpy(code, "IF");
+                break;
+            case 6:
+                strcpy(code, "RETURN");
+                break;
+            case 7:
+                strcpy(code, "STRUCT");
+                break;
+            case 8:
+                strcpy(code, "VOID");
+                break;
+            case 9:
+                strcpy(code, "WHILE");
+                break;
+            case 10:
+                strcpy(code, "COMMA");
+                break;
+            case 11:
+                strcpy(code, "SEMICOLON");
+                break;
+            case 12:
+                strcpy(code, "LPAR");
+                break;
+            case 13:
+                strcpy(code, "RPAR");
+                break;
+            case 14:
+                strcpy(code, "LBRACKET");
+                break;
+            case 15:
+                strcpy(code, "RBRACKET");
+                break;
+            case 16:
+                strcpy(code, "LACC");
+                break;
+            case 17:
+                strcpy(code, "RACC");
+                break;
+            case 18:
+                strcpy(code, "END");
+                break;
+            case 19:
+                strcpy(code, "ADD");
+                break;
+            case 20:
+                strcpy(code, "MUL");
+                break;
+            case 21:
+                strcpy(code, "DIV");
+                break;
+            case 22:
+                strcpy(code, "DOT");
+                break;
+            case 23:
+                strcpy(code, "AND");
+                break;
+            case 24:
+                strcpy(code, "OR");
+                break;
+            case 25:
+                strcpy(code, "NOT");
+                break;
+            case 26:
+                strcpy(code, "NOTEQ");
+                break;
+            case 27:
+                strcpy(code, "LESS");
+                break;
+            case 28:
+                strcpy(code, "LESSEQ");
+                break;
+            case 29:
+                strcpy(code, "GREATER");
+                break;
+            case 30:
+                strcpy(code, "GREATEREQ");
+                break;
+            case 31:
+                strcpy(code, "ASSIGN");
+                break;
+            case 32:
+                strcpy(code, "EQUAL");
+                break;
+            case 33:
+                strcpy(code, "SUB");
+                break;
+            case 34:
+                strcpy(code, "INT");
+                type_int_value = (int*)safeAlloc((size_t)sizeof(int));
+                *type_int_value = tk->i;
+                break;
+            case 35:
+                strcpy(code, "DOUBLE");
+                type_double_value = (double*)safeAlloc((size_t)sizeof(double));
+                *type_double_value = tk->d;
+                break;
+            case 36:
+                strcpy(code, "CHAR");
+                c = tk->c;
+                break;
+            case 37:
+                strcpy(code, "STRING");
+                length = strlen(tk->text);
+                text = (char*)safeAlloc((size_t)length+1);
+                strcpy(text, tk->text);
+                break;
+            default:
+                strcpy(code, "N\\A");
+        }
+
+        if(text)
+        {
+            printf("%d \t%s: %s\n", tk->line, code, text);
+            fprintf(fout, "%d \t%s: %s\n", tk->line, code, text);
+        }
+        else if(type_int_value)
+        {
+            printf("%d \t%s: %d\n", tk->line, code, *type_int_value);
+            fprintf(fout, "%d \t%s: %d\n", tk->line, code, *type_int_value);
+        }
+        else if(type_double_value)
+        {
+            printf("%d \t%s: %f\n", tk->line, code, *type_double_value);
+            fprintf(fout, "%d \t%s: %f\n", tk->line, code, *type_double_value);
+        }
+        else if(c != '\0')
+        {
+            printf("%d \t%s: %c\n", tk->line, code, c);
+            fprintf(fout, "%d \t%s: %c\n", tk->line, code, c);
+        }
+        else
+        {
+            printf("%d \t%s\n", tk->line, code);
+            fprintf(fout, "%d \t%s\n", tk->line, code);
+        }
+    }
+    free(text);
+    free(type_double_value);
+    free(type_int_value);
+
+    fclose(fout);
 }
