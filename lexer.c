@@ -231,76 +231,127 @@ Token *tokenize(const char *pch)
                 }
                 break;
 		default:
-			if (isalpha(*pch) || *pch == '_')
-			{
-				for (start = pch++; isalnum(*pch) || *pch == '_'; pch++)
-				{
-				}
-				char *text = extract(start, pch);
-				if (strcmp(text, "char") == 0)
-					addTk(TYPE_CHAR);
-
-				else if (strcmp(text, "double") == 0)
-					addTk(TYPE_DOUBLE);
-
-				else if (strcmp(text, "int") == 0)
-					addTk(TYPE_INT);
-
-				else if (strcmp(text, "double") == 0)
-					addTk(TYPE_DOUBLE);
-
-				else if (strcmp(text, "else") == 0)
-					addTk(ELSE);
-
-				else if (strcmp(text, "if") == 0)
-					addTk(IF);
-
-				else if (strcmp(text, "return") == 0)
-					addTk(RETURN);
-
-				else if (strcmp(text, "struct") == 0)
-					addTk(STRUCT);
-
-				else if (strcmp(text, "void") == 0)
-					addTk(VOID);
-
-				else if (strcmp(text, "while") == 0)
-					addTk(WHILE);
-
-				else
-				{
-					tk = addTk(ID);
-					tk->text = text;
-				}
+				if(isalpha(*pch) || *pch == '_'){
+					for(start = pch++; isalnum(*pch)||*pch == '_'; pch++){}
+					char *text = extract(start,pch);
+                    if(strcmp(text,"char") == 0)
+                        addTk(TYPE_CHAR);
+                    else if(strcmp(text,"double") == 0)
+                        addTk(TYPE_DOUBLE);
+                    else if(strcmp(text,"else") == 0)
+                        addTk(ELSE);
+                    else if(strcmp(text,"if") == 0)
+                        addTk(IF);
+                    else if(strcmp(text,"struct") == 0)
+                        addTk(STRUCT);
+                    else if(strcmp(text,"int") == 0){
+                        addTk(TYPE_INT);
+                    }
+                    else if(strcmp(text,"return") == 0)
+                        addTk(RETURN);
+                    else if(strcmp(text,"void") == 0)
+                        addTk(VOID);
+                    else if(strcmp(text,"while") == 0)
+                        addTk(WHILE);
+					else{
+						tk = addTk(ID);
+						tk->text = text;
+						}
+					}
+ 
+                    else if(isdigit(*pch))
+                    {
+                        for(start=pch++; isdigit(*pch) || *pch=='.' || *pch=='E' || *pch=='e' ||
+                        ((*pch=='e' || *pch=='E') && (*(pch+1)=='-' || (*(pch+1)=='+' || isdigit(*(pch+1)) ) )) ||
+                        ((*(pch-1)=='e' || *(pch-1)=='E') && (*pch=='-' || (*pch=='+' || isdigit(*pch) ) )); pch++) {}
+ 
+                        char *text = extract(start, pch);
+ 
+                        //printf("\nintra:%s\n",text);
+ 
+                        if(strchr(text, '.') || strchr(text, 'E') || strchr(text, 'e') || strchr(text, '-'))
+                        {
+                            if(strchr(text, '.')){
+                                int i = 0;
+                                while(text[i]!='.'){i++;}
+                                if(!isdigit(text[i+1]))
+                                    err("invalid FORMAT of double at line: %d",tk->line);
+                            }
+                            if(strchr(text, 'E')){
+                                int i = 0;
+                                while(text[i]!='E'){i++;}
+                                if(!isdigit(text[i+1]))
+                                    if((text[i+1]=='+' || text[i+1] == '-')) {
+                                        if(!isdigit(text[i+2]))
+                                            err("invalid FORMAT of double at line: %d",tk->line);
+                                    }
+                                    else
+                                        err("invalid FORMAT of double at line: %d",tk->line);
+                            }
+                            if(strchr(text, 'e')){
+                                int i = 0;
+                                while(text[i]!='e'){i++;}
+                                if(!isdigit(text[i+1]))
+                                    if((text[i+1]=='+' || text[i+1] == '-')) {
+                                        if(!isdigit(text[i+2]))
+                                            err("invalid FORMAT of double at line: %d",tk->line);
+                                    }
+                                    else
+                                        err("invalid FORMAT of double at line: %d",tk->line);
+                            }
+                            double value = atof(text);
+                            tk = addTk(DOUBLE);
+                            tk->d = value;
+ 
+                        }
+                        else
+                        {
+                            int value = atoi(text);
+                            tk = addTk(INT);
+                            tk->i = (int)value;
+                        }
+                    }
+ 
+                    else if(isalpha(*pch) || *pch == '\''){
+                            if( (*(pch+1) == '\\') && (*(pch)==*(pch+3)) ){
+                                tk = addTk(CHAR);
+                                tk->c = *(pch+2);
+                                pch = pch + 4;
+                            }
+                            else if(*(pch)==*(pch+2)){
+                                //printf("\n\nintra:%c%c%c\n\n",*(pch),*(pch+1),*(pch+2));
+                                tk = addTk(CHAR);
+                                tk->c = *(pch+1);
+                                pch = pch + 3;
+                            }
+                            else{
+                                err("expected char at line: %d",tk->line);
+                            }
+                    }
+                    else if(isalpha(*pch) || *pch == '"'){
+ 
+                            if(*(pch+1) == '"'){
+                                tk = addTk(STRING);
+                                tk->text = "";
+                                pch = pch + 2;
+                            }
+                            else{
+                                const char *start_string = pch;
+                                pch = pch + 1;
+                                while(*pch != '"'){
+                                    pch++;
+                                }
+                                pch++;
+ 
+                                tk = addTk(STRING);
+                                tk->text = extract(start_string+1,pch-1);
+                            }
+                    }
+ 
 			}
-			 else if(isdigit(*pch))
-                {
-                    for(start=pch++; isdigit(*pch) || *pch=='.' ||
-                                     ((*pch=='e' || *pch=='E') && (*(pch+1)=='-' || (*(pch+1)=='+' || isdigit(*(pch+1)) ||
-                                             isdigit(*(pch-1))) )) ||
-                                     ((*(pch-1)=='e' || *(pch-1)=='E') && (*pch=='-' || (*pch=='+' || isdigit(*pch) ) )); pch++) {}
-                    char *text = extract(start, pch);
-                    char *text_to_double = NULL;
-                    // convert text to double
-                    double value = strtod(text, &text_to_double);
-
-                    if(strchr(text, '.') || strchr(text, 'e') || strchr(text, 'E') || strchr(text, '-') || strchr(text, '+'))
-                    {
-                        tk=addTk(DOUBLE);
-                        tk->d=value;
-                    }
-                    // INT: [0-9]+
-                    else
-                    {
-                        tk= addTk(INT);
-                        tk->i=(int)value; //casting double to int value
-                    }
-				}
-			else
-				err("invalid char: %c (%d)", *pch, *pch);
 		}
 	}
-}
+
 
 void showTokens(const Token *tokens)
 {

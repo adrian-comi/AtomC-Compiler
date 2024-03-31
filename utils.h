@@ -1,10 +1,10 @@
 // requires at least C11
 // in Visual Studio it is set from Properties -> C/C++ -> C Language Standard 
 #pragma once
-
-#include <stddef.h>
+#include <stdlib.h>
 #include <stdnoreturn.h>
-
+#include <stddef.h>
+ 
 // prints to stderr a message prefixed with "error: " and exit the program
 // the arguments are the same as for printf
 noreturn void err(const char *fmt,...);
